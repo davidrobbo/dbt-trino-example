@@ -1,0 +1,15 @@
+multi_cloud:
+  outputs:
+
+    dev:
+      type: trino
+      method: none
+      user: anyone
+      #password: [password]  # required if method is ldap or kerberos
+      database: postgres
+      host: localhost
+      port: 8080
+      schema: public
+      threads: 1
+
+  target: dev

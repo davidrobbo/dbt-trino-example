@@ -1,0 +1,52 @@
+version: "3.8"
+services:
+  trino:
+    image: trinodb/trino:426
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./catalog:/etc/trino/catalog
+  sql_server:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y" #???
+      MSSQL_SA_PASSWORD: "Password1!"
+  postgres:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: "Password1!"
+      POSTGRES_USER: root
+      POSTGRES_DB: public
+  metastore:
+    build: ./hive
+    user: root
+    ports:
+      - "9083:9083"
+    environment:
+      SERVICE_NAME: metastore
+  minio:
+    image: 'quay.io/minio/minio:latest' # latest?
+    environment:
+      MINIO_ROOT_USER: minio_access_key
+      MINIO_ROOT_PASSWORD: minio_secret_key
+    command: server /data --console-address ":9001"
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+  createbuckets:
+    image: minio/mc:latest # latest?
+    volumes:
+      - ./minio:/var/data
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://minio:9000 minio_access_key minio_secret_key;
+      /usr/bin/mc mb myminio/some-bucket;
+      /usr/bin/mc mirror /var/data/activity myminio/some-bucket/public_delta.db/activity;
+      exit 0;
+      "
